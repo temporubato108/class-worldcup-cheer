@@ -1,0 +1,6 @@
+{
+  "name": "초등학교 학급 월드컵 응원 웹앱",
+  "description": "초등학교 학생들이 축구 경기 결과를 예측하고 응원 메시지를 남기는 월드컵 응원 웹앱",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

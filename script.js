@@ -11,6 +11,17 @@ const appState = {
   selectedPrediction: '' // 'korea', 'draw', 'czech'
 };
 
+// 금지어 리스트 (초등학교 학급용 부적절한 언어 및 비속어 필터링)
+const FORBIDDEN_WORDS = [
+  '시발', '씨발', '개새', '새끼', '존나', '좆', '병신', '지랄', '닥쳐', '쓰레기', '느금', '엠창', '아가리', '썅', '개소리'
+];
+
+function containsForbiddenWord(text) {
+  if (!text) return false;
+  const clean = text.toString().replace(/\s+/g, '').toLowerCase(); // 공백 제거 및 소문자화
+  return FORBIDDEN_WORDS.some(word => clean.includes(word));
+}
+
 // Default Simulated Mock Data
 const DEFAULT_PREDICTIONS = [
   { timestamp: "2026. 6. 18. 오전 09:12:45", studentName: "김민수", prediction: "대한민국 승" },
@@ -93,6 +104,24 @@ function startPolling() {
     }
   }, 1000);
 }
+
+function stopPolling() {
+  if (appState.timerId) {
+    clearInterval(appState.timerId);
+    appState.timerId = null;
+  }
+}
+
+// 브라우저 탭 비활성화 또는 모바일 화면이 꺼졌을 때 자동 갱신을 일시중지하여 구글 Apps Script 할당량 보호
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    console.log('스프레드시트 네트워크 트래픽 절약을 위해 실시간 자동 갱신을 임시 정지합니다.');
+    stopPolling();
+  } else {
+    console.log('사용자 대화면 복구 감지: 실시간 자동 갱신을 다시 구동합니다.');
+    startPolling();
+  }
+});
 
 function updateCountdownUI() {
   const el = document.getElementById('countdown-indicator');
@@ -271,6 +300,12 @@ window.submitPrediction = async function(event) {
     return;
   }
 
+  if (containsForbiddenWord(studentName)) {
+    alert('이름에 부적절한 단어(비속어 등)가 포함되어 있습니다. 바르고 고운 이름을 사용해 주세요! 😊');
+    nameInput.focus();
+    return;
+  }
+
   if (!prediction) {
     alert('경기 결과를 예측하여 카드를 하나 선택해주세요! 🇰🇷🤝🇨🇿');
     return;
@@ -408,6 +443,16 @@ window.submitCheeringMessage = async function(event) {
     return;
   }
 
+  if (containsForbiddenWord(studentName) || containsForbiddenWord(message)) {
+    alert('작성자 이름 또는 응원 메시지에 부적절한 단어(비속어 등)가 포함되어 있습니다. 바르고 고운 말을 사용해 주세요! 😊');
+    if (containsForbiddenWord(studentName)) {
+      nameInput.focus();
+    } else {
+      msgInput.focus();
+    }
+    return;
+  }
+
   if (!message || message.length > 30) {
     alert('메시지 길이는 1자 이상 30자 이하여야 합니다.');
     msgInput.focus();
@@ -469,9 +514,6 @@ function showCheerSuccess() {
       alertBox.classList.add('hidden');
     }, 4000);
   }
-
-  const nameInput = document.getElementById('cheer-student-name');
-  if (nameInput) nameInput.value = '';
 
   const msgInput = document.getElementById('cheering-msg');
   if (msgInput) {
